@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
-import Board from './Board'
 
 class user {
   name: string;
@@ -78,8 +77,9 @@ const NUM_ROW = 8;
 const LETTER_ARRAY = 'abcdefgh';
 
 export default function App() {
-  const [count, setCount] = useState(0)
-  const [user, setUser] = useState()
+  const [count, setCount] = useState(0);
+  const [user, setUser] = useState();
+  const [isWhite, setWhite] = useState(true);
   
   const linkElementRef = useRef();
 
@@ -89,7 +89,7 @@ export default function App() {
   for(let i = 0; i < NUM_ROW; i++) {
     initBoard[i] = new Array<cSquare>(NUM_COL);
     for(let j = 0; j < NUM_COL; j++) {
-      initBoard[i][j] = new cSquare(i, j);
+      initBoard[i][j] = new cSquare(i, j, isWhite);
     }
   }
   const [board, setBoard] = useState(initBoard)
@@ -104,41 +104,52 @@ export default function App() {
   }
 
   function Board() {
+    function getRank(row: number) {
+      if (isWhite) {
+        return NUM_ROW - row;
+      }
+      return row + 1;
+    }
+
+    function getSquareClass(num: number) {
+      let test = num;
+      if (isWhite) {
+        test++;
+      }
+      if (test % 2) {
+        return ' dark-square'
+      }
+      return ' light-square'
+    }
+
     return (
         <div id="board">
-            { board.map((row) => row.map((square, i) => <div key={i}>{square.getFile()}{square.getRank()}</div>)) }
+            { board.map((row, i) => {
+                return (
+                  <div key={getRank(i)} className="rank"> {
+                    row.map((square, j) => 
+                      <div key={square.getFile()+square.getRank()} className={'square' + getSquareClass(i + j)}>
+                        {square.getFile()+square.getRank()}
+                      </div>)
+                    }
+                  </div>
+                )
+              }
+            )}
         </div>
     );
   }
 
   return (
     <>
+      <h1>Chess 2</h1>
+
       <Board />
 
-      <div>
-        <a href="https://vitejs.dev" target="_blank" ref={linkElementRef}>
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
+      <button onClick={handleClick}>
+        {`count:${count} badcount:${badCount}`}
+      </button>
 
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-
-      <h1>Vite + React</h1>
-
-      <div id="x" className="card">
-        <button onClick={handleClick}>
-          {`count:${count} badcount:${badCount}`}
-        </button>
-
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
     </>
   )
 }
