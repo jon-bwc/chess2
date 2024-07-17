@@ -109,24 +109,16 @@ export default function App() {
       return row + 1;
     }
 
-    function getSquareClass(num: number) {
-      let test = num;
-      if (isWhite) {
-        test++;
-      }
-      if (test % 2) {
-        return ' dark-square'
-      }
-      return ' light-square'
-    }
-
     return (
       <div id="board">
           { board.map((row, i) => {
               return (
                 <div key={getRank(i)} className="rank"> {
                   row.map((square, j) => 
-                    <div key={square.getFile()+square.getRank()} className={'square' + getSquareClass(i + j)}>
+                    <div 
+                      key={square.getFile()+square.getRank()} 
+                      className={'square' + ((i + j) % 2 ? ' dark-square': ' light-square')}
+                    >
                       {square.getFile()+square.getRank()}
                     </div>)
                   }
