@@ -80,10 +80,12 @@ export default function App() {
   const [count, setCount] = useState(0);
   const [user, setUser] = useState();
   const [isWhite, setWhite] = useState(true);
-  
-  const linkElementRef = useRef();
 
   let badCount: number = 0;
+  function handleClick() {
+    setCount((c) => c + 1);
+    badCount++;
+  }
 
   const initBoard: cSquare[][] = new Array<cSquare[]>(NUM_ROW);
   for(let i = 0; i < NUM_ROW; i++) {
@@ -95,13 +97,9 @@ export default function App() {
   const [board, setBoard] = useState(initBoard)
 
   useEffect(() => {
-    
+    // TODO update board when we get updates from server
+    // call setBoard
   }, [])
-
-  function handleClick() {
-    setCount((c) => c + 1);
-    badCount++;
-  }
 
   function Board() {
     function getRank(row: number) {
@@ -123,20 +121,20 @@ export default function App() {
     }
 
     return (
-        <div id="board">
-            { board.map((row, i) => {
-                return (
-                  <div key={getRank(i)} className="rank"> {
-                    row.map((square, j) => 
-                      <div key={square.getFile()+square.getRank()} className={'square' + getSquareClass(i + j)}>
-                        {square.getFile()+square.getRank()}
-                      </div>)
-                    }
-                  </div>
-                )
-              }
-            )}
-        </div>
+      <div id="board">
+          { board.map((row, i) => {
+              return (
+                <div key={getRank(i)} className="rank"> {
+                  row.map((square, j) => 
+                    <div key={square.getFile()+square.getRank()} className={'square' + getSquareClass(i + j)}>
+                      {square.getFile()+square.getRank()}
+                    </div>)
+                  }
+                </div>
+              )
+            }
+          )}
+      </div>
     );
   }
 
