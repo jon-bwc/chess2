@@ -79,7 +79,7 @@ const LETTER_ARRAY = 'abcdefgh';
 export default function App() {
   const [count, setCount] = useState(0);
   const [user, setUser] = useState();
-  const [isWhite, setWhite] = useState(true);
+  const [isWhite, setWhite] = useState(false);
 
   let badCount: number = 0;
   function handleClick() {
@@ -120,6 +120,8 @@ export default function App() {
                       className={'square' + ((i + j) % 2 ? ' dark-square': ' light-square')}
                     >
                       {square.getFile()+square.getRank()}
+                      {/* Set the onClick handler */}
+                      {/* If sqaure.piece is not null, draw the correct piece */}
                     </div>)
                   }
                 </div>
@@ -132,14 +134,15 @@ export default function App() {
 
   return (
     <>
-      <h1>Chess 2</h1>
-
-      <Board />
-
-      <button onClick={handleClick}>
-        {`count:${count} badcount:${badCount}`}
-      </button>
-
+      <div className="content">
+        <div className ="board-cont">
+          <Board />
+        </div>
+        <div className="sidebar">
+          <h1>Chess 2</h1>
+          <div></div>
+        </div>
+      </div>
     </>
   )
 }
