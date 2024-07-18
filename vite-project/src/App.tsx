@@ -1,105 +1,80 @@
 import { useState, useRef, useEffect } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
+import { ChessColor, CPiece, CSquare, King, NUM_COL, NUM_ROW } from './Chess';
 
-class user {
+class Player {
   name: string;
-  ranking: number;
-
-  constructor(name: string, ranking: number) {
-    this.name = name;
-    this.ranking = ranking;
-  }
-}
-
-class cPiece {
-
-}
-
-class player {
-  name: string;
-  pieces: cPiece[];
+  pieces: CPiece[];
   time: number = 10 * 60;
 
-  constructor(name: string, pieces: cPiece[]) {
+  constructor(name: string, pieces: CPiece[]) {
     this.name = name;
     this.pieces = pieces;
   }
 }
 
-class game {
+class Game {
   name: string = "test";
   id: number;
-  white: player;
-  black: player;
+  white: Player;
+  black: Player;
 
-  constructor(id: number, white: player, black: player) {
+  constructor(id: number, white: Player, black: Player) {
     this.id = id;
     this.white = white;
     this.black = black;
   }
 }
 
-class cSquare {
-  piece: cPiece | null = null;
-  // cords from the top left
-  row: number;
-  col: number;
-  isWhite: boolean = true;
-
-  constructor(row: number, col: number, isWhite?: boolean) {
-    this.row = row;
-    this.col = col;
-
-    if (isWhite !== undefined) {
-      this.isWhite = isWhite;
-    }
-  }
-
-  getFile() : string {
-    if(this.isWhite) {
-      return LETTER_ARRAY[this.col];
-    }
-    return LETTER_ARRAY[NUM_COL - this.col - 1]; 
-  }
-
-  getRank() : number {
-    if(this.isWhite) {
-      return NUM_ROW - this.row;
-    }
-    return this.row + 1;
-  }
+enum BoardState {
+  none,
+  wait,
+  move
 }
-
-const NUM_COL = 8;
-const NUM_ROW = 8;
-const LETTER_ARRAY = 'abcdefgh';
 
 export default function App() {
   const [count, setCount] = useState(0);
   const [user, setUser] = useState();
   const [isWhite, setWhite] = useState(false);
 
-  let badCount: number = 0;
-  function handleClick() {
-    setCount((c) => c + 1);
-    badCount++;
-  }
+  const [boardState, setBoardState] = useState(BoardState.wait)
+  const [selectedPiece, setSelectedPiece] = useState<CPiece | null>(null)
 
-  const initBoard: cSquare[][] = new Array<cSquare[]>(NUM_ROW);
+  const initBoard: CSquare[][] = new Array<CSquare[]>(NUM_ROW);
   for(let i = 0; i < NUM_ROW; i++) {
-    initBoard[i] = new Array<cSquare>(NUM_COL);
+    initBoard[i] = new Array<CSquare>(NUM_COL);
     for(let j = 0; j < NUM_COL; j++) {
-      initBoard[i][j] = new cSquare(i, j, isWhite);
+      initBoard[i][j] = new CSquare(i, j, ChessColor.W);
     }
   }
   const [board, setBoard] = useState(initBoard)
 
+  function handleAddKing() {
+    board[0][0].piece = new King(0,0, ChessColor.W);
+    const newBoard = [...board]
+    // newBoard[0][0].piece = new King(0,0, ChessColor.W);
+    setBoard(newBoard);
+  }
+
+  // function handleMoveKing() {
+  //   const newBoard = [...board]
+  //   newBoard[0][0].piece = new King(0,0, ChessColor.W);
+  //   setBoard(newBoard);
+  // }
+
   useEffect(() => {
     // TODO update board when we get updates from server
     // call setBoard
-  }, [])
+  }, [board])
+
+  function handleSquareClick(square: CSquare) {
+    if (selectedPiece === null && square.piece !== null) {
+      setSelectedPiece(square.piece)
+    } else if (selectedPiece !== null) {
+      setBoard(selectedPiece.move(square.row, square.col, board));
+      setSelectedPiece(null)
+    }
+  }
 
   function Board() {
     function getRank(row: number) {
@@ -109,22 +84,43 @@ export default function App() {
       return row + 1;
     }
 
+    function getSquareClass(square: CSquare) {
+      let className = 'square';
+      if ((square.row + square.col)%2 ) {
+        className += ' dark-square'
+      } else {
+        className += ' light-square'
+      }
+      if(selectedPiece?.row === square.row && selectedPiece?.col === square.col) {
+        className += ' selectedSquare'
+      }
+      return className
+    }
+
     return (
       <div id="board">
           { board.map((row, i) => {
               return (
                 <div key={getRank(i)} className="rank"> {
-                  row.map((square, j) => 
-                    <div 
-                      key={square.getFile()+square.getRank()} 
-                      className={'square' + ((i + j) % 2 ? ' dark-square': ' light-square')}
-                    >
-                      {square.getFile()+square.getRank()}
-                      {/* Set the onClick handler */}
-                      {/* If sqaure.piece is not null, draw the correct piece */}
-                    </div>)
+                  row.map((square, j) => {
+                    return (
+                      <div 
+                        key={square.getFile()+square.getRank()}
+                        className={getSquareClass(square)}
+                        onClick={() => handleSquareClick(square)}
+                      >
+                        {/* {square.getFile()+square.getRank()} */}
+                        {/* Set the onClick handler */}
+                        {/* If square.piece is not null, draw the correct square.piece */}
+
+                        <img hidden={square.piece === null} src={square.piece?.color === ChessColor.W? square.piece?.wImage: square.piece?.bImage}></img>
+
+                      </div>
+                    )
                   }
-                </div>
+                    
+                  )
+                } </div>
               )
             }
           )}
@@ -140,6 +136,7 @@ export default function App() {
         </div>
         <div className="sidebar">
           <h1>Chess 2</h1>
+          <button onClick={handleAddKing}>Add King</button>
           <div></div>
         </div>
       </div>

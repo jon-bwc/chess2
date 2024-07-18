@@ -52,6 +52,10 @@ body {
   transition: border-width 0.1s linear;
 }
 
+.square img {
+  width: 80%;
+}
+
 .light-square {
   background-color: #3e5349;
 }
@@ -69,6 +73,10 @@ body {
 }
 
 .square:hover {
+  border-width: 5px;
+}
+
+.selectedSquare {
   border-width: 5px;
 }
 
