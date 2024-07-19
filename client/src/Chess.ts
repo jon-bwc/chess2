@@ -16,6 +16,7 @@ export class CSquare {
     row: number;
     col: number;
     playerColor: ChessColor = ChessColor.W;
+    isValid: boolean = false;
   
     constructor(row: number, col: number, color?: ChessColor) {
         this.row = row;
@@ -54,7 +55,11 @@ export class CPiece {
         this.color = color;
     }
 
-    move(row: number, col: number, board: CSquare[][]): CSquare[][] {
+    move(row: number, col: number, board: CSquare[][]): CSquare[][] | null {
+        return board
+    }
+
+    valid(board: CSquare[][]): CSquare[][] {
         return board
     }
 
@@ -70,11 +75,28 @@ export class King extends CPiece {
         super(row, col, color)
     }
 
-    move(row: number, col: number, board: CSquare[][]): CSquare[][] {
-        const fileDiff = Math.abs(row - this.row);
-        const rankDiff = Math.abs(col - this.col);
+    isValidMove(targetRow: number, targetCol:number) {
+        if (targetRow >= 0 || targetRow < NUM_ROW || targetCol >= 0 ||  targetCol < NUM_COL) {
+            const fileDiff = Math.abs(targetRow - this.row);
+            const rankDiff = Math.abs(targetCol - this.col);
+            
+            if ((fileDiff !== 0 || rankDiff !== 0) && (fileDiff <= 1 && rankDiff <= 1)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
-        if ((fileDiff !== 0 || rankDiff !== 0) && (fileDiff <= 1 && rankDiff <= 1)) {
+    // valid(board: CSquare[][]): CSquare[][] {
+    //     // TODO add check logic
+    //     if (this.isValidMove(this.row -1, this.col)) {
+    //         this.board[this.row -1, this.col].isValid = true;
+    //     }
+    //     return board;
+    // }
+
+    move(row: number, col: number, board: CSquare[][]): CSquare[][] | null {
+        if (this.isValidMove(row, col)) {
             // TODO add capture logic
 
             let square = board[this.row][this.col];
@@ -85,7 +107,8 @@ export class King extends CPiece {
             this.row = row;
             this.col = col;
             targetSquare.piece = this;
+            return board
         }
-        return [...board]
+        return null
     }
 }

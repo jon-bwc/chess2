@@ -50,9 +50,8 @@ export default function App() {
   const [board, setBoard] = useState(initBoard)
 
   function handleAddKing() {
-    board[0][0].piece = new King(0,0, ChessColor.W);
     const newBoard = [...board]
-    // newBoard[0][0].piece = new King(0,0, ChessColor.W);
+    newBoard[0][0].piece = new King(0,0, ChessColor.W);
     setBoard(newBoard);
   }
 
@@ -70,9 +69,15 @@ export default function App() {
   function handleSquareClick(square: CSquare) {
     if (selectedPiece === null && square.piece !== null) {
       setSelectedPiece(square.piece)
+      // Call piece valid function to highlight valid squares
+      
     } else if (selectedPiece !== null) {
-      setBoard(selectedPiece.move(square.row, square.col, board));
-      setSelectedPiece(null)
+      // Call piece move function to handle capture logic
+      let newBoard = selectedPiece.move(square.row, square.col, [...board]);
+      if (newBoard != null) {
+        setBoard(newBoard);
+        setSelectedPiece(null)
+      }
     }
   }
 
@@ -110,9 +115,8 @@ export default function App() {
                         onClick={() => handleSquareClick(square)}
                       >
                         {/* {square.getFile()+square.getRank()} */}
-                        {/* Set the onClick handler */}
-                        {/* If square.piece is not null, draw the correct square.piece */}
 
+                        {/* If square.piece is not null, draw the correct square.piece */}
                         <img hidden={square.piece === null} src={square.piece?.color === ChessColor.W? square.piece?.wImage: square.piece?.bImage}></img>
 
                       </div>
