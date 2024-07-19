@@ -16,7 +16,6 @@ export class CSquare {
     row: number;
     col: number;
     playerColor: ChessColor = ChessColor.W;
-    isValid: boolean = false;
   
     constructor(row: number, col: number, color?: ChessColor) {
         this.row = row;
@@ -56,11 +55,11 @@ export class CPiece {
     }
 
     move(row: number, col: number, board: CSquare[][]): CSquare[][] | null {
-        return board
+        return null
     }
 
-    valid(board: CSquare[][]): CSquare[][] {
-        return board
+    valid(isValidBoard: boolean[]): boolean[] | null {
+        return null
     }
 
     // Trigger capture animation
@@ -76,7 +75,7 @@ export class King extends CPiece {
     }
 
     isValidMove(targetRow: number, targetCol:number) {
-        if (targetRow >= 0 || targetRow < NUM_ROW || targetCol >= 0 ||  targetCol < NUM_COL) {
+        if (targetRow >= 0 && targetRow < NUM_ROW && targetCol >= 0 &&  targetCol < NUM_COL) {
             const fileDiff = Math.abs(targetRow - this.row);
             const rankDiff = Math.abs(targetCol - this.col);
             
@@ -87,13 +86,26 @@ export class King extends CPiece {
         return false;
     }
 
-    // valid(board: CSquare[][]): CSquare[][] {
-    //     // TODO add check logic
-    //     if (this.isValidMove(this.row -1, this.col)) {
-    //         this.board[this.row -1, this.col].isValid = true;
-    //     }
-    //     return board;
-    // }
+    valid(isValidBoard: boolean[]): boolean[] {
+        // TODO add check logic
+        let squaresToCheck = [
+            {row: this.row - 1, col: this.col},
+            {row: this.row - 1, col: this.col + 1},
+            {row: this.row - 1, col: this.col - 1},
+            {row: this.row + 1, col: this.col},
+            {row: this.row + 1, col: this.col + 1},
+            {row: this.row + 1, col: this.col - 1},
+            {row: this.row, col: this.col + 1},
+            {row: this.row, col: this.col - 1}
+        ]
+
+        squaresToCheck.forEach((cord) => {
+            if (this.isValidMove(cord.row, cord.col)) {
+                isValidBoard[(cord.row * NUM_ROW) + cord.col] = true;
+            }
+        });
+        return isValidBoard;
+    }
 
     move(row: number, col: number, board: CSquare[][]): CSquare[][] | null {
         if (this.isValidMove(row, col)) {

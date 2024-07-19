@@ -50,6 +50,8 @@ body {
   border-style: solid;
   border-width: 0;
   transition: border-width 0.1s linear;
+
+  align-content: center;
 }
 
 .square img {
@@ -78,13 +80,4 @@ body {
 
 .selectedSquare {
   border-width: 5px;
-}
-
-.valid {
-  cursor: pointer;
-}
-
-.valid::after {
-  border-radius: 50%;
-  scale: 0.3;
 }

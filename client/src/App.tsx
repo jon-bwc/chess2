@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import './App.css'
 import { ChessColor, CPiece, CSquare, King, NUM_COL, NUM_ROW } from './Chess';
+import io from 'socket.io-client'
 
 class Player {
   name: string;
@@ -26,21 +27,30 @@ class Game {
   }
 }
 
-enum BoardState {
-  none,
-  wait,
-  move
-}
-
 export default function App() {
   const [count, setCount] = useState(0);
   const [user, setUser] = useState();
   const [isWhite, setWhite] = useState(false);
-
-  const [boardState, setBoardState] = useState(BoardState.wait)
   const [selectedPiece, setSelectedPiece] = useState<CPiece | null>(null)
-
   const initBoard: CSquare[][] = new Array<CSquare[]>(NUM_ROW);
+  const [isValidBoard, setIsValidBoard] = useState(new Array(NUM_COL * NUM_ROW).fill(false));
+
+  // Socket.io setup
+  const socket = io('http://localhost:3000', { autoConnect: false });
+  socket.connect()
+
+  socket.emit('join_game', {username:'user', gamename:'test_game'});
+
+  useEffect(() => {
+    socket.on('new_game', (data) => {
+      console.log(data);
+    });
+
+    // Remove event listener on component unmount
+    return () => { socket.off('new_game') };
+  }, [socket]);
+
+  // Array Setup
   for(let i = 0; i < NUM_ROW; i++) {
     initBoard[i] = new Array<CSquare>(NUM_COL);
     for(let j = 0; j < NUM_COL; j++) {
@@ -55,12 +65,6 @@ export default function App() {
     setBoard(newBoard);
   }
 
-  // function handleMoveKing() {
-  //   const newBoard = [...board]
-  //   newBoard[0][0].piece = new King(0,0, ChessColor.W);
-  //   setBoard(newBoard);
-  // }
-
   useEffect(() => {
     // TODO update board when we get updates from server
     // call setBoard
@@ -70,13 +74,17 @@ export default function App() {
     if (selectedPiece === null && square.piece !== null) {
       setSelectedPiece(square.piece)
       // Call piece valid function to highlight valid squares
-      
+      let newIsValidBoard = square.piece.valid([...isValidBoard]);
+      if (newIsValidBoard !== null) {
+        setIsValidBoard(newIsValidBoard);
+      }
     } else if (selectedPiece !== null) {
       // Call piece move function to handle capture logic
       let newBoard = selectedPiece.move(square.row, square.col, [...board]);
-      if (newBoard != null) {
+      if (newBoard !== null) {
         setBoard(newBoard);
-        setSelectedPiece(null)
+        setSelectedPiece(null);
+        setIsValidBoard(new Array(NUM_COL * NUM_ROW).fill(false))
       }
     }
   }
@@ -96,7 +104,7 @@ export default function App() {
       } else {
         className += ' light-square'
       }
-      if(selectedPiece?.row === square.row && selectedPiece?.col === square.col) {
+      if (selectedPiece?.row === square.row && selectedPiece?.col === square.col) {
         className += ' selectedSquare'
       }
       return className
@@ -114,11 +122,8 @@ export default function App() {
                         className={getSquareClass(square)}
                         onClick={() => handleSquareClick(square)}
                       >
-                        {/* {square.getFile()+square.getRank()} */}
-
-                        {/* If square.piece is not null, draw the correct square.piece */}
+                        {(isValidBoard[(i * NUM_ROW) + j]) ? square.getFile()+square.getRank():''}
                         <img hidden={square.piece === null} src={square.piece?.color === ChessColor.W? square.piece?.wImage: square.piece?.bImage}></img>
-
                       </div>
                     )
                   }
