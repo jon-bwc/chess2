@@ -61,7 +61,7 @@ io.on('connection', (socket => {
 
     // Handle when player creates a new game
     socket.on('new_game', (roomReq: RoomReq) => {
-        console.log(`new_game: ${roomReq}`);
+        console.log(`new_game: ${roomReq.gameId}`);
 
         let username = users.get(socket.id);
         if(username === undefined) {
@@ -86,18 +86,32 @@ io.on('connection', (socket => {
     });
 
     socket.on('join_game', (roomReq: RoomReq) => {
-        console.log(roomReq);
-        
+        console.log(`join_game: ${roomReq.gameId}`);
+
+        let username = users.get(socket.id);
+        if(username === undefined) {
+            socket.emit('error', 'User missing id');
+            return;
+        }
+
         // TODO Check if game exists
+        let game = games.get(roomReq.gameId);
+        if (game !== undefined) {
+            game.players.push(new Player(username, roomReq.side));
 
-        // Add this socket to a room name
-        socket.join(roomReq.gameId);
+            console.log(games.get(roomReq.gameId)?.players);
 
-        // Send to everyone in the room, apart from the user that joined
-        socket.to(roomReq.gameId).emit('new_game', "everyone");
+            // Add this socket to the room name
+            socket.join(roomReq.gameId);
+            // Send to everyone in the room, apart from the user that joined
+            socket.to(roomReq.gameId).emit('game_start', true);
+            // Send to user that just joined
+            socket.emit('game_start', true);
+        } else {
 
-        // Send to user that just joined
-        socket.emit('new_game', "user");
+            console.log('room not found');
+            socket.emit('join_game_result', false);
+        }
     });
 
     // Client to Server events

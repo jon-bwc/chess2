@@ -183,7 +183,7 @@ export default function App() {
             serverService.current.newGame(roomId, side)
           }}> Create Game</button>
           <button onClick={() => {
-            serverService.current.joinGame(roomId, null)
+            serverService.current.joinGame(roomId, side)
           }}> Join Game</button>
         </div>
         
