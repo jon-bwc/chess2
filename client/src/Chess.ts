@@ -2,15 +2,32 @@ import wKingImg from './assets/wk.png'
 import bKingImg from './assets/bk.png'
 import wQueenImg from './assets/wq.png'
 import bQueenImg from './assets/bq.png'
+import { io, Socket } from 'socket.io-client';
+import { ChessColor, LETTER_ARRAY, NUM_COL, NUM_ROW, RoomReq } from '../../chess-models.ts'
 
-export const NUM_COL = 8;
-export const NUM_ROW = 8;
-export const LETTER_ARRAY = 'abcdefgh';
+export class ServerService {
+    socket: Socket;
 
-export enum ChessColor {
-    W = "white",
-    B = "black"
+    constructor () {
+        this.socket = io('http://localhost:3000');
+    }
+
+    login(username: string) {
+        this.socket.emit('login', username);
+    }
+
+    newGame(gameId: string, side: ChessColor) {
+        let req = new RoomReq(gameId, side);
+        this.socket.emit('new_game', req);
+    }
+
+    joinGame(gameId: string, side: ChessColor) {
+        let req = new RoomReq(gameId, side);
+        this.socket.emit('join_game', req);
+    }
 }
+
+
 
 export class CSquare {
     piece: CPiece | null = null;

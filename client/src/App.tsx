@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, ChangeEvent } from 'react'
 import './App.css'
-import { ChessColor, CPiece, CSquare, King, NUM_COL, NUM_ROW } from './Chess';
+import { CPiece, CSquare, King, ServerService } from './Chess';
+import { ChessColor, NUM_COL, NUM_ROW } from '../../chess-models';
 import io from 'socket.io-client'
 
 class Player {
@@ -28,27 +29,38 @@ class Game {
 }
 
 export default function App() {
-  const [count, setCount] = useState(0);
-  const [user, setUser] = useState();
   const [isWhite, setWhite] = useState(false);
   const [selectedPiece, setSelectedPiece] = useState<CPiece | null>(null)
+  const serverService = useRef<ServerService>(new ServerService());
+
   const initBoard: CSquare[][] = new Array<CSquare[]>(NUM_ROW);
   const [isValidBoard, setIsValidBoard] = useState(new Array(NUM_COL * NUM_ROW).fill(false));
 
-  // Socket.io setup
-  const socket = io('http://localhost:3000', { autoConnect: false });
-  socket.connect()
+  useEffect(() => {
+    let socket = serverService.current.socket;
+    socket.on('login', (success) => {
+      console.log(data);
+    });
 
-  socket.emit('join_game', {username:'user', gamename:'test_game'});
+    // Remove event listener on component unmount
+    return () => { socket.off('login') };
+  }, [serverService.current.socket]);
 
   useEffect(() => {
+    let socket = serverService.current.socket;
     socket.on('new_game', (data) => {
       console.log(data);
     });
 
     // Remove event listener on component unmount
     return () => { socket.off('new_game') };
-  }, [socket]);
+  }, [serverService.current.socket]);
+
+  
+  useEffect(() => {
+    // TODO update board when we get updates from server
+    // call setBoard
+  }, [serverService.current.socket])
 
   // Array Setup
   for(let i = 0; i < NUM_ROW; i++) {
@@ -64,11 +76,6 @@ export default function App() {
     newBoard[0][0].piece = new King(0,0, ChessColor.W);
     setBoard(newBoard);
   }
-
-  useEffect(() => {
-    // TODO update board when we get updates from server
-    // call setBoard
-  }, [board])
 
   function handleSquareClick(square: CSquare) {
     if (selectedPiece === null && square.piece !== null) {
@@ -137,16 +144,61 @@ export default function App() {
     );
   }
 
+  function Sidebar() {
+    const [username, setUsername] = useState('');
+    const [roomId, setRoomId] = useState('');
+    const [side, setSide] = useState<ChessColor>(ChessColor.N);
+
+    return(
+      <>
+        <h1>Chess 2</h1>
+        <button onClick={handleAddKing}>Add King</button>
+        <div>
+          <input 
+            type='text'
+            placeholder='username'
+            value={username}
+            onChange={(e) => {
+              setUsername(e.target.value);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                serverService.current.login(username);
+              }
+            }}
+          />
+        </div>
+        <input type="text" placeholder='room id'value={roomId} onChange={(event: ChangeEvent<HTMLInputElement>)=>{
+          setRoomId(event.target.value);
+        }}/>
+        <div onChange={(e) => {
+            setSide(e.target.value);
+        }}>
+          <input type="radio" value={ChessColor.W} checked={side === ChessColor.W}/> White
+          <input type="radio" value={ChessColor.B} checked={side === ChessColor.B}/> Black
+          <input type="radio" value={ChessColor.N} checked={side === ChessColor.N}/> None
+        </div>
+        <div>
+          <button onClick={() => {
+            serverService.current.newGame(roomId, side)
+          }}> Create Game</button>
+          <button onClick={() => {
+            serverService.current.joinGame(roomId, null)
+          }}> Join Game</button>
+        </div>
+        
+      </>
+    )
+  }
+
   return (
     <>
       <div className="content">
         <div className ="board-cont">
           <Board />
         </div>
-        <div className="sidebar">
-          <h1>Chess 2</h1>
-          <button onClick={handleAddKing}>Add King</button>
-          <div></div>
+        <div className='sidebar'>
+          <Sidebar />
         </div>
       </div>
     </>

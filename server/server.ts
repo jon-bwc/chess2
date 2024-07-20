@@ -2,57 +2,102 @@ import express from 'express'
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import { Game, RoomReq } from './models';
+import { ChessColor, RoomReq } from '../chess-models';
+import { Chess } from 'chess.js';
 
 const port = 3000;
 
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
+    connectionStateRecovery: {
+        // the backup duration of the sessions and the packets
+        maxDisconnectionDuration: Infinity,
+        // whether to skip middlewares upon successful recovery
+        skipMiddlewares: true,
+    },
     cors: {
         origin: "http://localhost:5173"
     }
 });
 
 let games = new Map<string, Game>();
+let users = new Map<string, string>();
+
+class Player {
+    username: string;
+    side: ChessColor | null;
+
+    constructor(username: string, side: ChessColor | null) {
+        this.username = username;
+        this.side = side;
+    }
+}
+
+class Game {
+    id = '';
+    players: Player[] = [];
+    chess: Chess;
+
+    constructor(id: string) {
+        this.id = id
+        this.chess = new Chess()
+    }
+}
 
 io.on('connection', (socket => {
     console.log(`Socket connected from ${socket.id}`);
 
-    // Handle when player creates a new game
-    socket.on('new_game', (data: RoomReq) => {
-        console.log(`new_game: ${data}`);
-
-        if (games.has(data.gameId)) {
-            socket.emit('new_game', false);
+    socket.on('login', (username: string) => {
+        if(users.has(socket.id)) {
+            console.log(`Login failed: ${username}`)
+            socket.emit('login_result', false);
         } else {
-            games.set(data.gameId, new Game(data.gameId));
-
-            // Add this socket to a room name
-            socket.join(data.gameId);
-
-            console.log(games.get(data.gameId)?.chess.ascii());
-            socket.emit('new_game', true);
+            console.log(`Login: ${username}`)
+            users.set(socket.id, username);
+            socket.emit('login_result', true)
         }
     });
 
-    socket.on('join_game', (data: RoomReq) => {
-        const { username, gameId } = data;
-        console.log(data);
+    // Handle when player creates a new game
+    socket.on('new_game', (roomReq: RoomReq) => {
+        console.log(`new_game: ${roomReq}`);
+
+        let username = users.get(socket.id);
+        if(username === undefined) {
+            socket.emit('error', 'User missing id');
+            return;
+        }
+
+        if (games.has(roomReq.gameId)) {
+            socket.emit('new_game_result', false);
+        } else {
+            let newGame = new Game(roomReq.gameId);
+            newGame.players.push(new Player(username, roomReq.side));
+
+            games.set(roomReq.gameId, newGame);
+
+            // Add this socket to a room name
+            socket.join(roomReq.gameId);
+
+            console.log(newGame.chess.ascii());
+            socket.emit('new_game_result', true);
+        }
+    });
+
+    socket.on('join_game', (roomReq: RoomReq) => {
+        console.log(roomReq);
         
         // TODO Check if game exists
 
         // Add this socket to a room name
-        socket.join(gameId);
-        const __createdtime__ = Date.now();
+        socket.join(roomReq.gameId);
 
         // Send to everyone in the room, apart from the user that joined
-        socket.to(gameId).emit('new_game', "everyone");
+        socket.to(roomReq.gameId).emit('new_game', "everyone");
 
         // Send to user that just joined
         socket.emit('new_game', "user");
-
-        console.log(__createdtime__)
     });
 
     // Client to Server events
@@ -65,7 +110,10 @@ io.on('connection', (socket => {
 
     // Disconnect
     socket.on("disconnect", (reason) => {
-
+        console.log(`Socket connected from ${socket.id}`);
+        if (users.has(socket.id)) {
+            users.delete(socket.id)
+        }
     });
 }));
 
