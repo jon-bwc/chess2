@@ -1,5 +1,7 @@
 import wKingImg from './assets/wk.png'
-import bKingImg from './assets/wk.png'
+import bKingImg from './assets/bk.png'
+import wQueenImg from './assets/wq.png'
+import bQueenImg from './assets/bq.png'
 
 export const NUM_COL = 8;
 export const NUM_ROW = 8;
@@ -80,6 +82,65 @@ export class King extends CPiece {
             const rankDiff = Math.abs(targetCol - this.col);
             
             if ((fileDiff !== 0 || rankDiff !== 0) && (fileDiff <= 1 && rankDiff <= 1)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    valid(isValidBoard: boolean[]): boolean[] {
+        // TODO add check logic
+        let squaresToCheck = [
+            {row: this.row - 1, col: this.col},
+            {row: this.row - 1, col: this.col + 1},
+            {row: this.row - 1, col: this.col - 1},
+            {row: this.row + 1, col: this.col},
+            {row: this.row + 1, col: this.col + 1},
+            {row: this.row + 1, col: this.col - 1},
+            {row: this.row, col: this.col + 1},
+            {row: this.row, col: this.col - 1}
+        ]
+
+        squaresToCheck.forEach((cord) => {
+            if (this.isValidMove(cord.row, cord.col)) {
+                isValidBoard[(cord.row * NUM_ROW) + cord.col] = true;
+            }
+        });
+        return isValidBoard;
+    }
+
+    move(row: number, col: number, board: CSquare[][]): CSquare[][] | null {
+        if (this.isValidMove(row, col)) {
+            // TODO add capture logic
+
+            let square = board[this.row][this.col];
+            let targetSquare = board[row][col];
+
+            square.piece = null;
+
+            this.row = row;
+            this.col = col;
+            targetSquare.piece = this;
+            return board
+        }
+        return null
+    }
+}
+
+export class Queen extends CPiece {
+    wImage = wQueenImg;
+    bImage = bQueenImg;
+
+    constructor(row: number, col: number, color: ChessColor) {
+        super(row, col, color)
+    }
+
+    isValidMove(targetRow: number, targetCol:number) {
+        if (targetRow >= 0 && targetRow < NUM_ROW && targetCol >= 0 &&  targetCol < NUM_COL) {
+            const fileDiff = Math.abs(targetRow - this.row);
+            const rankDiff = Math.abs(targetCol - this.col);
+            
+            if ((fileDiff !== 0 || rankDiff !== 0) && (fileDiff === rankDiff)) {
                 return true;
             }
         }

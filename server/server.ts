@@ -2,6 +2,7 @@ import express from 'express'
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import { Game, RoomReq } from './models';
 
 const port = 3000;
 
@@ -13,22 +14,40 @@ const io = new Server(httpServer, {
     }
 });
 
+let games = new Map<string, Game>();
+
 io.on('connection', (socket => {
     console.log(`Socket connected from ${socket.id}`);
 
-    // Handle when player creates or joins an existing game
-    socket.on('join_game', (data) => {
-        const { username, gamename } = data;
+    // Handle when player creates a new game
+    socket.on('new_game', (data: RoomReq) => {
+        console.log(`new_game: ${data}`);
+
+        if (games.has(data.gameId)) {
+            socket.emit('new_game', false);
+        } else {
+            games.set(data.gameId, new Game(data.gameId));
+
+            // Add this socket to a room name
+            socket.join(data.gameId);
+
+            console.log(games.get(data.gameId)?.chess.ascii());
+            socket.emit('new_game', true);
+        }
+    });
+
+    socket.on('join_game', (data: RoomReq) => {
+        const { username, gameId } = data;
         console.log(data);
         
         // TODO Check if game exists
 
         // Add this socket to a room name
-        socket.join(gamename);
+        socket.join(gameId);
         const __createdtime__ = Date.now();
 
         // Send to everyone in the room, apart from the user that joined
-        socket.to(gamename).emit('new_game', "everyone");
+        socket.to(gameId).emit('new_game', "everyone");
 
         // Send to user that just joined
         socket.emit('new_game', "user");
@@ -37,20 +56,17 @@ io.on('connection', (socket => {
     });
 
     // Client to Server events
-    socket.on('make_move', (data) => {
+    // socket.on('make_move', (data) => {});
 
-    });
-
-    socket.on('player_offer', (data) => {
-
-    });
+    // socket.on('player_offer', (data) => {});
 
     // Server to Client events
-    socket.emit('next_turn', (data) => {
+    // socket.emit('next_turn', (data) => {});
+
+    // Disconnect
+    socket.on("disconnect", (reason) => {
 
     });
-
-    // Disconnect 
 }));
 
 app.use(cors());
