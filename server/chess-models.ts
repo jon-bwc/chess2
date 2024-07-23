@@ -12,16 +12,8 @@ export class RoomReq {
     gameId: string;
     side: ChessColor;
 
-    constructor(username: string, gameId: string, side: ChessColor) {
+    constructor(gameId: string, side: ChessColor) {
         this.gameId = gameId;
         this.side = side;
     }
-}
-
-export class Square {
-
-}
-
-export class Piece {
-    
 }

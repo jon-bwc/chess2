@@ -2,7 +2,7 @@ import express from 'express'
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import { ChessColor, RoomReq } from '../chess-models';
+import { ChessColor, RoomReq } from './chess-models';
 import { Chess } from 'chess.js';
 
 const port = 3000;
@@ -11,7 +11,6 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     connectionStateRecovery: {
-        // the backup duration of the sessions and the packets
         maxDisconnectionDuration: Infinity,
         // whether to skip middlewares upon successful recovery
         skipMiddlewares: true,
@@ -23,6 +22,7 @@ const io = new Server(httpServer, {
 
 let games = new Map<string, Game>();
 let users = new Map<string, string>();
+let usernames = new Set<string>();
 
 class Player {
     username: string;
@@ -49,13 +49,14 @@ io.on('connection', (socket => {
     console.log(`Socket connected from ${socket.id}`);
 
     socket.on('login', (username: string) => {
-        if(users.has(socket.id)) {
+        if(users.has(socket.id) || usernames.has(username)) {
             console.log(`Login failed: ${username}`)
             socket.emit('login_result', false);
         } else {
             console.log(`Login: ${username}`)
             users.set(socket.id, username);
-            socket.emit('login_result', true)
+            usernames.add(username);
+            socket.emit('login_result', true);
         }
     });
 
@@ -103,19 +104,35 @@ io.on('connection', (socket => {
 
             // Add this socket to the room name
             socket.join(roomReq.gameId);
-            // Send to everyone in the room, apart from the user that joined
-            socket.to(roomReq.gameId).emit('game_start', true);
             // Send to user that just joined
-            socket.emit('game_start', true);
+            socket.emit('join_game_result', true);3
+            // Send to everyone in the room
+            io.to(roomReq.gameId).emit('game_start', game.chess.board());
         } else {
-
             console.log('room not found');
             socket.emit('join_game_result', false);
         }
     });
 
-    // Client to Server events
-    // socket.on('make_move', (data) => {});
+    socket.on('make_move', (data) => {
+        console.log(data)
+
+        let game = games.get(data.gameId);
+        if (game !== undefined) {
+            //TODO check if player is in this game
+            try {
+                game.chess.move({from:data.from, to:data.to})
+
+                // TODO handle promotion
+
+                // Send new board state to both players
+                io.to(data.gameId).emit('next_turn', game.chess.board)
+            } catch {
+                // Move failed
+                socket.emit('move_failed')
+            }
+        }
+    });
 
     // socket.on('player_offer', (data) => {});
 
@@ -124,8 +141,9 @@ io.on('connection', (socket => {
 
     // Disconnect
     socket.on("disconnect", (reason) => {
-        console.log(`Socket connected from ${socket.id}`);
+        console.log(`Socket disconnected from ${socket.id}`);
         if (users.has(socket.id)) {
+            usernames.delete(users.get(socket.id)!);
             users.delete(socket.id)
         }
     });

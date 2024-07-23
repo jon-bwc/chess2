@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect, ChangeEvent } from 'react'
 import './App.css'
-import { CPiece, CSquare, King, ServerService } from './Chess';
-import { ChessColor, NUM_COL, NUM_ROW } from '../../chess-models';
-import io from 'socket.io-client'
+import { CPiece, CSquare, getNewPiece, King, ServerService } from './Chess';
+import { ChessColor, NUM_COL, NUM_ROW } from './chess-models';
 
 class Player {
   name: string;
@@ -36,32 +35,6 @@ export default function App() {
   const initBoard: CSquare[][] = new Array<CSquare[]>(NUM_ROW);
   const [isValidBoard, setIsValidBoard] = useState(new Array(NUM_COL * NUM_ROW).fill(false));
 
-  useEffect(() => {
-    let socket = serverService.current.socket;
-    socket.on('login', (success) => {
-      console.log(data);
-    });
-
-    // Remove event listener on component unmount
-    return () => { socket.off('login') };
-  }, [serverService.current.socket]);
-
-  useEffect(() => {
-    let socket = serverService.current.socket;
-    socket.on('new_game', (data) => {
-      console.log(data);
-    });
-
-    // Remove event listener on component unmount
-    return () => { socket.off('new_game') };
-  }, [serverService.current.socket]);
-
-  
-  useEffect(() => {
-    // TODO update board when we get updates from server
-    // call setBoard
-  }, [serverService.current.socket])
-
   // Array Setup
   for(let i = 0; i < NUM_ROW; i++) {
     initBoard[i] = new Array<CSquare>(NUM_COL);
@@ -70,6 +43,36 @@ export default function App() {
     }
   }
   const [board, setBoard] = useState(initBoard)
+  const oldBoard = useRef<CSquare[][]>();
+
+  useEffect(() => {
+    let socket = serverService.current.socket;
+
+    socket.on('game_start', (result) => {
+      // Convert chess.js board to local board
+      let newBoard = [...board];
+
+      for(let i = 0; i < NUM_ROW; i++) {
+        for(let j = 0; j < NUM_COL; j++) {
+          let s = result[i][j];
+          if (s !== null) {
+            newBoard[i][j].piece = getNewPiece(i,j,s.type,s.color);
+          }
+        }
+      }
+
+      setBoard(newBoard)
+    });
+
+    socket.on('next_turn', (result) => {
+      console.log(result)
+    });
+
+    return () => { 
+      socket.off('game_start')
+      socket.off('next_turn')
+    };
+  }, [serverService.current.socket]);
 
   function handleAddKing() {
     const newBoard = [...board]
@@ -81,17 +84,19 @@ export default function App() {
     if (selectedPiece === null && square.piece !== null) {
       setSelectedPiece(square.piece)
       // Call piece valid function to highlight valid squares
-      let newIsValidBoard = square.piece.valid([...isValidBoard]);
-      if (newIsValidBoard !== null) {
-        setIsValidBoard(newIsValidBoard);
-      }
+      // let newIsValidBoard = square.piece.valid([...isValidBoard]);
+      // if (newIsValidBoard !== null) {
+      //   setIsValidBoard(newIsValidBoard);
+      // }
     } else if (selectedPiece !== null) {
       // Call piece move function to handle capture logic
+
+      oldBoard.current = board;
       let newBoard = selectedPiece.move(square.row, square.col, [...board]);
       if (newBoard !== null) {
         setBoard(newBoard);
         setSelectedPiece(null);
-        setIsValidBoard(new Array(NUM_COL * NUM_ROW).fill(false))
+        // setIsValidBoard(new Array(NUM_COL * NUM_ROW).fill(false))
       }
     }
   }
@@ -133,9 +138,7 @@ export default function App() {
                         <img hidden={square.piece === null} src={square.piece?.color === ChessColor.W? square.piece?.wImage: square.piece?.bImage}></img>
                       </div>
                     )
-                  }
-                    
-                  )
+                  })
                 } </div>
               )
             }
@@ -146,8 +149,33 @@ export default function App() {
 
   function Sidebar() {
     const [username, setUsername] = useState('');
-    const [roomId, setRoomId] = useState('');
+    const [usernameSet, setUsernameSet] = useState(false);
+    const [gameId, setGameId] = useState('');
+    const [gameIdSet, setGameIdSet] = useState(false);
     const [side, setSide] = useState<ChessColor>(ChessColor.N);
+
+    useEffect(() => {
+      let socket = serverService.current.socket;
+
+      socket.on('login_result', (result) => {
+        setUsernameSet(result);
+      });
+
+      socket.on('new_game_result', (result) => {
+        setGameIdSet(result);
+      })
+
+      socket.on('join_game_result', (result) => {
+        setGameIdSet(result);
+      })
+
+      // Remove event listener on component unmount
+      return () => { 
+        socket.off('login_result')
+        socket.off('new_game_result')
+        socket.off('join_game_result')
+      };
+    }, [serverService.current.socket]);
 
     return(
       <>
@@ -158,6 +186,7 @@ export default function App() {
             type='text'
             placeholder='username'
             value={username}
+            disabled={usernameSet}
             onChange={(e) => {
               setUsername(e.target.value);
             }}
@@ -168,22 +197,22 @@ export default function App() {
             }}
           />
         </div>
-        <input type="text" placeholder='room id'value={roomId} onChange={(event: ChangeEvent<HTMLInputElement>)=>{
-          setRoomId(event.target.value);
+        <input type="text" placeholder='room id'value={gameId} disabled={gameIdSet} onChange={(event: ChangeEvent<HTMLInputElement>)=>{
+          setGameId(event.target.value);
         }}/>
         <div onChange={(e) => {
             setSide(e.target.value);
         }}>
-          <input type="radio" value={ChessColor.W} checked={side === ChessColor.W}/> White
-          <input type="radio" value={ChessColor.B} checked={side === ChessColor.B}/> Black
-          <input type="radio" value={ChessColor.N} checked={side === ChessColor.N}/> None
+          <input type="radio" value={ChessColor.W} checked={side === ChessColor.W} disabled={gameIdSet}/> White
+          <input type="radio" value={ChessColor.B} checked={side === ChessColor.B} disabled={gameIdSet}/> Black
+          <input type="radio" value={ChessColor.N} checked={side === ChessColor.N} disabled={gameIdSet}/> None
         </div>
         <div>
-          <button onClick={() => {
-            serverService.current.newGame(roomId, side)
+          <button  disabled={gameIdSet} onClick={() => {
+            serverService.current.newGame(gameId, side)
           }}> Create Game</button>
-          <button onClick={() => {
-            serverService.current.joinGame(roomId, side)
+          <button  disabled={gameIdSet} onClick={() => {
+            serverService.current.joinGame(gameId, side)
           }}> Join Game</button>
         </div>
         
