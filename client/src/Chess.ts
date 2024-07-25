@@ -37,32 +37,26 @@ export class ServerService {
 
 export class CSquare {
     piece: CPiece | null = null;
-    // cords from the top left
+    // Cords from the top left
+    // Assume bottom left is A1
     row: number;
     col: number;
-    playerColor: ChessColor = ChessColor.W;
 
-    constructor(row: number, col: number, color?: ChessColor) {
+    constructor(row: number, col: number) {
         this.row = row;
         this.col = col;
-    
-        if (color !== undefined) {
-            this.playerColor = color;
-        }
     }
 
     getFile() : string {
-        if(this.playerColor == ChessColor.W) {
-            return LETTER_ARRAY[this.col];
-        }
-        return LETTER_ARRAY[NUM_COL - this.col - 1]; 
+        return LETTER_ARRAY[this.col];
     }
 
     getRank() : number {
-        if(this.playerColor == ChessColor.W) {
-            return NUM_ROW - this.row;
-        }
-        return this.row + 1;
+        return NUM_ROW - this.row;
+    }
+
+    getChessCord() : string {
+        return this.getFile() + this.getRank().toString();
     }
 }
 

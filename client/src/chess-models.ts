@@ -26,3 +26,28 @@ export class RoomReq {
         this.side = side;
     }
 }
+
+export class MoveReq {
+    from: string;
+    to: string;
+
+    constructor(from: string, to: string) {
+        this.from = from;
+        this.to = to;
+    }
+}
+
+export class GameData {
+    constructor(
+        public board: {
+            square: string;
+            type: string;
+            color: string;
+        }[][],
+        public white: string,
+        public black: string,
+        public turn: ChessColor,
+        public isCheck: boolean,
+        public isGameOver: boolean
+    ) {}
+}
