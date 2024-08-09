@@ -13,11 +13,17 @@ export enum ChessColor {
 export class Game {
     id: string;
     playerIds: string[] = [];
+    white: string = '';
+    black: string = '';
     chess: Chess;
 
     constructor(id: string) {
         this.id = id
         this.chess = new Chess()
+    }
+
+    getGameData() {
+        return new GameData(this.chess, this.white, this.black);
     }
 }
 
@@ -32,7 +38,7 @@ export class Player {
         this.username = username;
     }
 
-    addGame(gameId: string, side: ChessColor)    {
+    addGame(gameId: string, side: ChessColor) {
         this.gameId = gameId;
         this.side = side;
     }
@@ -64,10 +70,10 @@ export class GameData {
     isCheck: boolean;
     isGameOver: boolean;
 
-    constructor(game: Game, public white: string, public black: string) {
-        this.board = game.chess.board();
-        this.turn = game.chess.turn();
-        this.isCheck = game.chess.isCheck();
-        this.isGameOver = game.chess.isGameOver();
+    constructor(chess: Chess, public white: string, public black: string) {
+        this.board = chess.board();
+        this.turn = chess.turn();
+        this.isCheck = chess.isCheck();
+        this.isGameOver = chess.isGameOver();
     }
 }

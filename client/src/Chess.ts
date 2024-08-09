@@ -80,32 +80,32 @@ export class CPiece {
         return false;
     }
 
-    move(row: number, col: number, board: CSquare[][]): CSquare[][] | null {
-        if (this.isValidMove(row, col)) {
+    // move(row: number, col: number, board: CSquare[][]): CSquare[][] | null {
+    //     if (this.isValidMove(row, col)) {
 
-            let square = board[this.row][this.col];
-            let targetSquare = board[row][col];
+    //         let square = board[this.row][this.col];
+    //         let targetSquare = board[row][col];
 
-            // TODO add capture logic
-            if (targetSquare.piece !== null) {
-                if (targetSquare.piece.color === this.color) {
-                    return null;
-                }
-            }
+    //         // TODO add capture logic
+    //         if (targetSquare.piece !== null) {
+    //             if (targetSquare.piece.color === this.color) {
+    //                 return null;
+    //             }
+    //         }
 
-            square.piece = null;
+    //         square.piece = null;
 
-            this.row = row;
-            this.col = col;
-            targetSquare.piece = this;
-            return board
-        }
-        return null
-    }
+    //         this.row = row;
+    //         this.col = col;
+    //         targetSquare.piece = this;
+    //         return board
+    //     }
+    //     return null
+    // }
 
-    valid(isValidBoard: boolean[]): boolean[] | null {
-        return null
-    }
+    // valid(isValidBoard: boolean[]): boolean[] | null {
+    //     return null
+    // }
 
     // Trigger capture animation
     capture(): void {}
@@ -150,26 +150,26 @@ export class King extends CPiece {
         return false;
     }
 
-    valid(isValidBoard: boolean[]): boolean[] {
-        // TODO add check logic
-        let squaresToCheck = [
-            {row: this.row - 1, col: this.col},
-            {row: this.row - 1, col: this.col + 1},
-            {row: this.row - 1, col: this.col - 1},
-            {row: this.row + 1, col: this.col},
-            {row: this.row + 1, col: this.col + 1},
-            {row: this.row + 1, col: this.col - 1},
-            {row: this.row, col: this.col + 1},
-            {row: this.row, col: this.col - 1}
-        ]
+    // valid(isValidBoard: boolean[]): boolean[] {
+    //     // TODO add check logic
+    //     let squaresToCheck = [
+    //         {row: this.row - 1, col: this.col},
+    //         {row: this.row - 1, col: this.col + 1},
+    //         {row: this.row - 1, col: this.col - 1},
+    //         {row: this.row + 1, col: this.col},
+    //         {row: this.row + 1, col: this.col + 1},
+    //         {row: this.row + 1, col: this.col - 1},
+    //         {row: this.row, col: this.col + 1},
+    //         {row: this.row, col: this.col - 1}
+    //     ]
 
-        squaresToCheck.forEach((cord) => {
-            if (this.isValidMove(cord.row, cord.col)) {
-                isValidBoard[(cord.row * NUM_ROW) + cord.col] = true;
-            }
-        });
-        return isValidBoard;
-    }
+    //     squaresToCheck.forEach((cord) => {
+    //         if (this.isValidMove(cord.row, cord.col)) {
+    //             isValidBoard[(cord.row * NUM_ROW) + cord.col] = true;
+    //         }
+    //     });
+    //     return isValidBoard;
+    // }
 }
 
 export class Queen extends CPiece {
@@ -269,12 +269,29 @@ export class Rook extends CPiece {
         super(row, col, color)
     }
 
-    isValidMove(targetRow: number, targetCol:number) {
+    isValidMove(targetRow: number, targetCol: number) {
         if (targetRow >= 0 && targetRow < NUM_ROW && targetCol >= 0 &&  targetCol < NUM_COL) {
-            const fileDiff = Math.abs(targetRow - this.row);
-            const rankDiff = Math.abs(targetCol - this.col);
+            const fileDiff = targetRow - this.row;
+            const rankDiff = targetCol - this.col;
             
-            if ((fileDiff > 0 && rankDiff === 0) || (fileDiff === 0 && rankDiff > 0)) {
+            if (fileDiff !== 0 && rankDiff === 0) {
+                // Check max valid move for file
+                // for (let i = this.row; i !== targetRow;) {
+                //     if (fileDiff > 0) {
+                //         i++;
+                //     } else {
+                //         i--;
+                //     }
+
+                //     if (board[i][this.col].piece !== null) {
+                //         if (i === targetRow && board[i][this.col].piece?.col !== this.col) {
+                //             return true;
+                //         }
+                //         return false;
+                //     }
+                // }
+                return true;
+            } else if (fileDiff === 0 && rankDiff !== 0) {
                 return true;
             }
         }

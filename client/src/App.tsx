@@ -59,8 +59,9 @@ export default function App() {
 // :{serverServiceRef: MutableRefObject<ServerService>},{username}
 
 function Board({serverServiceRef, username, gameId}) {
-  const [isWhite, setIsWhite] = useState(true);
+  const [playerColor, setPlayerColor] = useState(ChessColor.W);
   const [selectedPiece, setSelectedPiece] = useState<CPiece | null>(null)
+  const [playerTurn, setPlayerTurn] = useState(ChessColor.W);
 
   // const [isValidBoard, setIsValidBoard] = useState(new Array(NUM_COL * NUM_ROW).fill(false));
 
@@ -73,32 +74,43 @@ function Board({serverServiceRef, username, gameId}) {
       initBoard[i][j] = new CSquare(i, j);
     }
   }
-  const [board, setBoard] = useState(initBoard)
-  const oldBoard = useRef<CSquare[][]>();
+  const [board, setBoard] = useState(initBoard);
+
+  function chessjsToLocalBoard(chessjsBoard: {square: string;type: string;color: string;}[][]) {
+    // Convert chess.js board to local board
+    let newBoard = new Array<CSquare[]>(NUM_ROW);
+    for(let i = 0; i < NUM_ROW; i++) {
+      newBoard[i] = new Array<CSquare>(NUM_COL);
+      for(let j = 0; j < NUM_COL; j++) {
+        newBoard[i][j] = new CSquare(i, j);
+        let s = chessjsBoard[i][j];
+        if (s !== null) {
+          newBoard[i][j].piece = getNewPiece(i,j,s.type,s.color as ChessColor);
+        }
+      }
+    }
+    return newBoard;
+  }
 
   useEffect(() => {
     let socket = serverServiceRef.current.socket;
 
     socket.on('game_start', (result: GameData) => {
-      setIsWhite(result.white === username);
-
-      // Convert chess.js board to local board
-      let newBoard = new Array<CSquare[]>(NUM_ROW);
-      for(let i = 0; i < NUM_ROW; i++) {
-        newBoard[i] = new Array<CSquare>(NUM_COL);
-        for(let j = 0; j < NUM_COL; j++) {
-          newBoard[i][j] = new CSquare(i, j);
-          let s = result.board[i][j];
-          if (s !== null) {
-            newBoard[i][j].piece = getNewPiece(i,j,s.type,s.color as ChessColor);
-          }
-        }
+      if (result.black === username) {
+        setPlayerColor(ChessColor.B);
       }
-      setBoard(newBoard);
+      setBoard(chessjsToLocalBoard(result.board));
     });
 
-    socket.on('next_turn', (result) => {
-      console.log(result)
+    socket.on('move_failed', () => {
+      console.log("Move Failed!")
+    });
+
+    socket.on('next_turn', (result: GameData) => {
+      console.log(result);
+      setSelectedPiece(null);
+      setPlayerTurn(result.turn);
+      setBoard(chessjsToLocalBoard(result.board));
     });
 
     return () => { 
@@ -108,25 +120,17 @@ function Board({serverServiceRef, username, gameId}) {
   }, [serverServiceRef.current.socket, username]);
 
   function handleSquareClick(square: CSquare) {
-    if (selectedPiece === null && square.piece !== null) {
-      setSelectedPiece(square.piece)
-      // Call piece valid function to highlight valid squares
-      // let newIsValidBoard = square.piece.valid([...isValidBoard]);
-      // if (newIsValidBoard !== null) {
-      //   setIsValidBoard(newIsValidBoard);
-      // }
-    } else if (selectedPiece === square.piece) {
-      // Let player deselect already selected piece
-      // Need to have better validation logic before disabling this
-      setSelectedPiece(null);
-    } else if (selectedPiece !== null) {
-      oldBoard.current = board;
-      let newBoard = selectedPiece.move(square.row, square.col, [...board]);
-      if (newBoard !== null) {
-        setBoard(newBoard);
-        setSelectedPiece(null);
-        // setIsValidBoard(new Array(NUM_COL * NUM_ROW).fill(false))
+    if (playerColor !== playerTurn) {
+      console.log('Not your turn!')
+      return;
+    }
 
+    if (selectedPiece === null && square.piece !== null && square.piece.color === playerColor) {
+      setSelectedPiece(square.piece)
+    } else if (selectedPiece === square.piece) {
+      setSelectedPiece(null)
+    } else if (selectedPiece !== null) {
+      if (selectedPiece.isValidMove(square.row, square.col)) {
         // Send move to server
         let moveReq = new MoveReq(board[selectedPiece.row][selectedPiece.col].getChessCord(), square.getChessCord());
         serverServiceRef.current.socket.emit('move', moveReq);
@@ -156,7 +160,7 @@ function Board({serverServiceRef, username, gameId}) {
 
   function getDispBoard(): CSquare[][] {
     let dispBoard = board;
-    if (!isWhite) {
+    if (playerColor === ChessColor.B) {
       dispBoard = [...board]
       dispBoard.reverse().map((row) => {row.reverse()})
     }

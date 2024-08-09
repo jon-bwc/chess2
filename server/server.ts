@@ -99,13 +99,15 @@ io.on('connection', (socket => {
 
                 // TODO handle side logic
                 // Currently creator is white, joiner is black
+                game.white = opponent.username;
+                game.black = player.username;
 
                 // Add this socket to the room name
                 socket.join(roomReq.gameId);
                 // Send to user that just joined
                 socket.emit('join_game_result', true);
                 // Send to everyone in the room
-                io.to(roomReq.gameId).emit('game_start', new GameData(game, opponent.username, player.username));
+                io.to(roomReq.gameId).emit('game_start', game.getGameData());
             }
         } else {
             console.log('[join_game]: Room not found');
@@ -122,17 +124,20 @@ io.on('connection', (socket => {
 
         let game = games.get(player.gameId);
         if (game !== undefined) {
+            console.log(game.chess.ascii())
             console.log(`Move ${moveReq.from} to ${moveReq.to}`)
             //TODO check if player is in this game
             try {
                 game.chess.move({from:moveReq.from, to:moveReq.to})
+                console.log(game.chess.ascii())
 
                 // TODO handle promotion
 
                 // Send new board state to both players
-                io.to(game.id).emit('next_turn', game.chess.board)
+                io.to(game.id).emit('next_turn', game.getGameData())
             } catch {
                 // Move failed
+                console.log('Move failed!')
                 socket.emit('move_failed')
             }
         }
@@ -149,7 +154,9 @@ io.on('connection', (socket => {
         if (players.has(socket.id)) {
             // Handle game disconnect
             let dcPlayer = players.get(socket.id)!;
-            if (dcPlayer.gameId !== null) {
+            console.log(`Kicking: ${dcPlayer.username}`);
+            if (dcPlayer.gameId !== null && games.has(dcPlayer.gameId)) {
+                console.log(`Closing game: ${dcPlayer.gameId}`);
                 let dcGame = games.get(dcPlayer.gameId)!
 
                 // TODO broadcast game end info
@@ -157,6 +164,7 @@ io.on('connection', (socket => {
 
                 // Kick everyone from socket
                 io.in(dcGame.id).socketsLeave(dcGame.id);
+                games.delete(dcPlayer.gameId);
             }
 
             usernames.delete(dcPlayer.username);
